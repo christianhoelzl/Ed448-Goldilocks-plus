@@ -38,7 +38,7 @@ zeroize = ["dep:zeroize"]
 [dev-dependencies]
 hex-literal = "0.4"
 hex = "0.4"
-elliptic-curve-tools = "0.1.2"
+elliptic-curve-tools = "0.2"
 rand_core = { version = "0.6", features = ["std"] }
 rand_chacha = "0.3"
 serde_bare = "0.5"
