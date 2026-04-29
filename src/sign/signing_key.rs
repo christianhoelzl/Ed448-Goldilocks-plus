@@ -346,11 +346,12 @@ impl TryFrom<pkcs8::PrivateKeyInfo<'_>> for KeypairBytes {
         if value.algorithm.oid != super::ALGORITHM_OID {
             return Err(pkcs8::Error::KeyMalformed);
         }
-        if value.private_key.len() != SECRET_KEY_LENGTH {
-            return Err(pkcs8::Error::KeyMalformed);
-        }
-        let mut secret_key = [0u8; SECRET_KEY_LENGTH];
-        secret_key.copy_from_slice(value.private_key);
+
+        let secret_key: [u8; SECRET_KEY_LENGTH] = value.private_key
+            .strip_prefix(&[0x04, SECRET_KEY_LENGTH as u8])
+            .and_then(|s| s.try_into().ok())
+            .ok_or(pkcs8::Error::KeyMalformed)?;
+
         let verifying_key = if let Some(public_key) = value.public_key {
             if public_key.len() != PUBLIC_KEY_LENGTH {
                 return Err(pkcs8::Error::KeyMalformed);
