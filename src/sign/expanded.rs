@@ -80,8 +80,8 @@ impl ExpandedSecretKey {
     /// also known as "PureEdDSA on Curve448". No context is provided;
     /// this is equivalent to `sign_ctx()` with an empty (zero-length)
     /// context.
-    pub fn sign_raw(&self, m: &[u8]) -> Result<InnerSignature, SigningError> {
-        self.sign_inner(0, &[], m)
+    pub fn sign_raw(&self, m: &[u8]) -> InnerSignature {
+        self.sign_inner_unchecked(0, &[], m)
     }
 
     /// Signs a message (with context).
@@ -109,6 +109,10 @@ impl ExpandedSecretKey {
         if ctx.len() > 255 {
             return Err(SigningError::PrehashedContextLength);
         }
+        Ok(self.sign_inner_unchecked(phflag, ctx, m))
+    }
+
+    fn sign_inner_unchecked(&self, phflag: u8, ctx: &[u8], m: &[u8]) -> InnerSignature {
         // SHAKE256(dom4(F, C) || prefix || PH(M), 114) -> scalar r
         let clen = ctx.len() as u8;
         let mut reader = Shake256::default()
@@ -139,9 +143,9 @@ impl ExpandedSecretKey {
             .finalize_xof();
         reader.read(&mut bytes);
         let k = Scalar::from_bytes_mod_order_wide(&bytes);
-        Ok(InnerSignature {
+        InnerSignature {
             r: big_r,
             s: r + k * self.scalar,
-        })
+        }
     }
 }

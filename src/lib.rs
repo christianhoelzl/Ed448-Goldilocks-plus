@@ -73,10 +73,14 @@ pub use subtle;
 pub(crate) mod constants;
 pub(crate) mod curve;
 pub(crate) mod decaf;
+#[cfg(feature = "signing")]
+pub mod ed448;
 pub(crate) mod field;
 pub(crate) mod ristretto;
 #[cfg(feature = "signing")]
 pub(crate) mod sign;
+#[cfg(feature = "kex")]
+pub mod x448;
 
 pub(crate) use field::{GOLDILOCKS_BASE_POINT, TWISTED_EDWARDS_BASE_POINT};
 

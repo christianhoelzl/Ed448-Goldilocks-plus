@@ -8,14 +8,14 @@ use elliptic_curve::Group;
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Signature {
     pub(crate) r: CompressedEdwardsY,
-    pub(crate) s: [u8; 57],
+    pub(crate) s: [u8; SECRET_KEY_LENGTH],
 }
 
 impl Default for Signature {
     fn default() -> Self {
         Self {
             r: CompressedEdwardsY::default(),
-            s: [0u8; 57],
+            s: [0u8; SECRET_KEY_LENGTH],
         }
     }
 }
@@ -84,12 +84,20 @@ impl<'de> serdect::serde::Deserialize<'de> for Signature {
 }
 
 impl Signature {
+    /// Size of an encoded Ed448 signature in bytes.
+    pub const BYTE_SIZE: usize = SIGNATURE_LENGTH;
+
     /// Converts [`Signature`] to a byte array.
     pub fn to_bytes(&self) -> [u8; SIGNATURE_LENGTH] {
         let mut bytes = [0u8; SIGNATURE_LENGTH];
-        bytes[..57].copy_from_slice(self.r.as_bytes());
-        bytes[57..].copy_from_slice(&self.s);
+        bytes[..SECRET_KEY_LENGTH].copy_from_slice(self.r.as_bytes());
+        bytes[SECRET_KEY_LENGTH..].copy_from_slice(&self.s);
         bytes
+    }
+
+    /// Parse an Ed448 signature from a byte slice.
+    pub fn from_slice(bytes: &[u8]) -> Result<Self, SigningError> {
+        Self::try_from(bytes)
     }
 
     /// Converts a byte array to a [`Signature`].
@@ -106,7 +114,9 @@ impl Signature {
             return Err(SigningError::InvalidSignatureRComponent);
         }
 
-        let big_r = big_r.expect("big_r is not none");
+        let Some(big_r) = Option::<EdwardsPoint>::from(big_r) else {
+            return Err(SigningError::InvalidSignatureRComponent);
+        };
         if big_r.is_identity().into() {
             return Err(SigningError::InvalidSignatureRComponent);
         }
@@ -120,7 +130,9 @@ impl Signature {
         if ss.is_none().into() {
             return Err(SigningError::InvalidSignatureSComponent);
         }
-        let sc = ss.expect("ss is not none");
+        let Some(sc) = Option::<Scalar>::from(ss) else {
+            return Err(SigningError::InvalidSignatureSComponent);
+        };
         if sc.is_zero().into() {
             return Err(SigningError::InvalidSignatureSComponent);
         }
@@ -133,8 +145,18 @@ impl Signature {
         self.r
     }
 
+    /// Bytes for the `R` component of this signature.
+    pub fn r_bytes(&self) -> &[u8; SECRET_KEY_LENGTH] {
+        self.r.as_bytes()
+    }
+
     /// The `s` value of the signature.
     pub fn s(&self) -> &[u8; SECRET_KEY_LENGTH] {
+        &self.s
+    }
+
+    /// Bytes for the `s` component of this signature.
+    pub fn s_bytes(&self) -> &[u8; SECRET_KEY_LENGTH] {
         &self.s
     }
 }

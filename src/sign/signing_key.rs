@@ -4,7 +4,8 @@
 use crate::curve::edwards::extended::PointBytes;
 use crate::sign::expanded::ExpandedSecretKey;
 use crate::{
-    Context, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH, Scalar, ScalarBytes, Signature, VerifyingKey,
+    Context, KEYPAIR_LENGTH, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH, Scalar, ScalarBytes, Signature,
+    SigningError, VerifyingKey,
 };
 use core::fmt::{self, Debug, Formatter};
 use crypto_signature::Error;
@@ -188,6 +189,12 @@ impl TryFrom<&[u8]> for SigningKey {
     }
 }
 
+impl AsRef<VerifyingKey> for SigningKey {
+    fn as_ref(&self) -> &VerifyingKey {
+        &self.secret.public_key
+    }
+}
+
 impl<D> crypto_signature::DigestSigner<D, Signature> for SigningKey
 where
     D: Digest + crypto_signature::digest::Update,
@@ -214,7 +221,7 @@ impl crypto_signature::hazmat::PrehashSigner<Signature> for SigningKey {
 
 impl crypto_signature::Signer<Signature> for SigningKey {
     fn try_sign(&self, msg: &[u8]) -> Result<Signature, Error> {
-        let sig = self.secret.sign_raw(msg)?;
+        let sig = self.secret.sign_raw(msg);
         Ok(sig.into())
     }
 }
@@ -437,6 +444,11 @@ impl<'de> serdect::serde::Deserialize<'de> for SigningKey {
 }
 
 impl SigningKey {
+    /// Construct a [`SigningKey`] from a [`SecretKey`].
+    pub fn from_bytes(secret_key: &SecretKey) -> Self {
+        Self::from(secret_key)
+    }
+
     /// Generate a cryptographically random [`SigningKey`].
     pub fn generate(mut rng: impl rand_core::CryptoRng) -> Self {
         let mut secret_scalar = SecretKey::default();
@@ -455,6 +467,27 @@ impl SigningKey {
     /// Serialize this [`SigningKey`] as a byte reference.
     pub fn as_bytes(&self) -> &SecretKey {
         &self.secret.seed
+    }
+
+    /// Construct a [`SigningKey`] from a secret key followed by a verifying key.
+    pub fn from_keypair_bytes(bytes: &[u8; KEYPAIR_LENGTH]) -> Result<Self, Error> {
+        let mut secret_key = SecretKey::default();
+        secret_key.copy_from_slice(&bytes[..SECRET_KEY_LENGTH]);
+        let signing_key = Self::from_bytes(&secret_key);
+
+        if signing_key.verifying_key().as_bytes() != &bytes[SECRET_KEY_LENGTH..] {
+            return Err(SigningError::InvalidPublicKeyBytes.into());
+        }
+
+        Ok(signing_key)
+    }
+
+    /// Convert this signing key to keypair bytes.
+    pub fn to_keypair_bytes(&self) -> [u8; KEYPAIR_LENGTH] {
+        let mut bytes = [0u8; KEYPAIR_LENGTH];
+        bytes[..SECRET_KEY_LENGTH].copy_from_slice(self.as_bytes());
+        bytes[SECRET_KEY_LENGTH..].copy_from_slice(self.verifying_key().as_bytes());
+        bytes
     }
 
     /// Return the clamped [`Scalar`] for this [`SigningKey`].
@@ -482,11 +515,7 @@ impl SigningKey {
     /// Sign a `message` with this [`SigningKey`] using the Ed448 algorithm
     /// defined in [RFC8032 §5.2](https://datatracker.ietf.org/doc/html/rfc8032#section-5.2).
     pub fn sign_raw(&self, message: &[u8]) -> Signature {
-        let sig = self
-            .secret
-            .sign_raw(message)
-            .expect("to succeed since no context is provided");
-        sig.into()
+        self.secret.sign_raw(message).into()
     }
 
     /// Sign a `message` in the given `context` with this [`SigningKey`] using the Ed448ph algorithm

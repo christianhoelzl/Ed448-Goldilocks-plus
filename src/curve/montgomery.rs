@@ -81,6 +81,12 @@ impl Mul<&Scalar> for &MontgomeryPoint {
 
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn mul(self, scalar: &Scalar) -> MontgomeryPoint {
+        self.mul_bits(scalar.bits())
+    }
+}
+
+impl MontgomeryPoint {
+    pub(crate) fn mul_bits(&self, bits: [bool; 448]) -> MontgomeryPoint {
         // Algorithm 8 of Costello-Smith 2017
         let affine_u = FieldElement::from_bytes(&self.0);
         let mut x0 = ProjectiveMontgomeryPoint::identity();
@@ -89,7 +95,6 @@ impl Mul<&Scalar> for &MontgomeryPoint {
             W: FieldElement::ONE,
         };
 
-        let bits = scalar.bits();
         let mut swap = 0;
         for s in (0..448).rev() {
             let bit = bits[s] as u8;
@@ -103,17 +108,6 @@ impl Mul<&Scalar> for &MontgomeryPoint {
 
         x0.to_affine()
     }
-}
-
-impl Mul<&MontgomeryPoint> for &Scalar {
-    type Output = MontgomeryPoint;
-
-    fn mul(self, point: &MontgomeryPoint) -> MontgomeryPoint {
-        point * self
-    }
-}
-
-impl MontgomeryPoint {
     /// Returns the generator specified in RFC7748
     pub const GENERATOR: Self = Self([
         0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -145,6 +139,14 @@ impl MontgomeryPoint {
             U: FieldElement::from_bytes(&self.0),
             W: FieldElement::ONE,
         }
+    }
+}
+
+impl Mul<&MontgomeryPoint> for &Scalar {
+    type Output = MontgomeryPoint;
+
+    fn mul(self, point: &MontgomeryPoint) -> MontgomeryPoint {
+        point * self
     }
 }
 

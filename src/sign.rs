@@ -80,6 +80,7 @@ mod verifying_key;
 pub use context::*;
 pub use crypto_signature;
 pub use error::*;
+#[cfg(feature = "pkcs8")]
 pub use pkcs8;
 pub use signature::*;
 pub use signing_key::*;
@@ -90,6 +91,9 @@ pub const SECRET_KEY_LENGTH: usize = 57;
 
 /// Length of a public key in bytes
 pub const PUBLIC_KEY_LENGTH: usize = 57;
+
+/// Length of a keypair in bytes
+pub const KEYPAIR_LENGTH: usize = SECRET_KEY_LENGTH + PUBLIC_KEY_LENGTH;
 
 /// Length of a signature in bytes
 pub const SIGNATURE_LENGTH: usize = 114;
