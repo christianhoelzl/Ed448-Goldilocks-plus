@@ -55,6 +55,22 @@ pub const MODULUS_LIMBS: [u32; 14] = [
     0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0x3fffffff,
 ];
 
+/// The number of 32-bit words needed to represent scalar bits.
+pub const SCALAR_REPR_BITS_WORDS: usize = 14;
+
+fn scalar_words(value: &U448) -> [u32; SCALAR_REPR_BITS_WORDS] {
+    let bytes = value.to_le_bytes();
+    let mut words = [0u32; SCALAR_REPR_BITS_WORDS];
+
+    for (word, bytes) in words.iter_mut().zip(bytes.chunks_exact(4)) {
+        let mut word_bytes = [0u8; 4];
+        word_bytes.copy_from_slice(bytes);
+        *word = u32::from_le_bytes(word_bytes);
+    }
+
+    words
+}
+
 impl Display for Scalar {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         let bytes = self.to_bytes_rfc_8032();
@@ -495,14 +511,14 @@ impl ReduceNonZero<WideScalarBytes> for Scalar {
 }
 
 impl PrimeFieldBits for Scalar {
-    type ReprBits = [crypto_bigint::Word; U448::LIMBS];
+    type ReprBits = [u32; SCALAR_REPR_BITS_WORDS];
 
     fn to_le_bits(&self) -> FieldBits<Self::ReprBits> {
-        self.0.to_words().into()
+        scalar_words(&self.0).into()
     }
 
     fn char_le_bits() -> FieldBits<Self::ReprBits> {
-        ORDER.to_words().into()
+        scalar_words(&ORDER).into()
     }
 }
 
@@ -685,7 +701,7 @@ impl ShrAssign<usize> for Scalar {
 #[cfg(feature = "zeroize")]
 impl From<&Scalar> for Ed448ScalarBits {
     fn from(scalar: &Scalar) -> Self {
-        scalar.0.to_words().into()
+        scalar_words(&scalar.0).into()
     }
 }
 

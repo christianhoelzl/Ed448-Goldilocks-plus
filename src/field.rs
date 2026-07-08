@@ -2,7 +2,9 @@ mod element;
 mod scalar;
 
 pub(crate) use element::*;
-pub use scalar::{MODULUS_LIMBS, ORDER, Scalar, ScalarBytes, WIDE_ORDER, WideScalarBytes};
+pub use scalar::{
+    MODULUS_LIMBS, ORDER, SCALAR_REPR_BITS_WORDS, Scalar, ScalarBytes, WIDE_ORDER, WideScalarBytes,
+};
 
 use crate::curve::edwards::EdwardsPoint;
 use crate::curve::twedwards::extended::ExtendedPoint as TwExtendedPoint;

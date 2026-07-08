@@ -88,7 +88,9 @@ pub use curve::{
     AffinePoint, CompressedEdwardsY, EdwardsPoint, MontgomeryPoint, ProjectiveMontgomeryPoint,
 };
 pub use decaf::{AffinePoint as DecafAffinePoint, CompressedDecaf, DecafPoint};
-pub use field::{MODULUS_LIMBS, ORDER, Scalar, ScalarBytes, WIDE_ORDER, WideScalarBytes};
+pub use field::{
+    MODULUS_LIMBS, ORDER, SCALAR_REPR_BITS_WORDS, Scalar, ScalarBytes, WIDE_ORDER, WideScalarBytes,
+};
 pub use ristretto::{CompressedRistretto, RistrettoPoint};
 #[cfg(feature = "signing")]
 pub use sign::*;
@@ -108,7 +110,7 @@ pub struct Ed448;
 pub type Ed448FieldBytes = elliptic_curve::FieldBytes<Ed448>;
 
 /// Scalar bits of the Ed448 scalar
-pub type Ed448ScalarBits = ff::FieldBits<[crypto_bigint::Word; U448::LIMBS]>;
+pub type Ed448ScalarBits = ff::FieldBits<[u32; SCALAR_REPR_BITS_WORDS]>;
 
 /// Non-zero scalar of the Ed448 scalar
 pub type Ed448NonZeroScalar = elliptic_curve::NonZeroScalar<Ed448>;
@@ -147,7 +149,7 @@ pub struct Decaf448;
 pub type Decaf448FieldBytes = elliptic_curve::FieldBytes<Decaf448>;
 
 /// Scalar bits of the Decaf448 scalar
-pub type Decaf448ScalarBits = ff::FieldBits<[crypto_bigint::Word; U448::LIMBS]>;
+pub type Decaf448ScalarBits = ff::FieldBits<[u32; SCALAR_REPR_BITS_WORDS]>;
 
 /// Non-zero scalar of the Decaf448 scalar
 pub type Decaf448NonZeroScalar = elliptic_curve::NonZeroScalar<Decaf448>;
